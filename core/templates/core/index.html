@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+{% load static %}
+<!-- Served by Django. Asset URLs are resolved by the static-files app; the markup, CSS and JS are otherwise the original files. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5" />
+<meta name="theme-color" content="#0b0f14" />
+<meta name="description" content="EVACROUTE — real-time disaster evacuation guidance. Admin marks danger zones, users get routed to the nearest safe zone." />
+<title>EVACROUTE — Real-time Evacuation Guidance</title>
+
+<!-- Leaflet 1.9.4 (CSS) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<link rel="stylesheet" href="{% static 'core/css/styles.css' %}" />
+</head>
+<body>
+
+<!-- early error capture: a separate script block so a syntax error in the
+     main application block below is still reported instead of failing silently -->
+<script>
+window.__EVACROUTE_ERRORS__=[];
+(function(){
+  function record(msg){
+    try{
+      window.__EVACROUTE_ERRORS__.push(String(msg));
+      var el=document.getElementById('js-error');
+      if(!el){
+        el=document.createElement('pre');
+        el.id='js-error';
+        el.hidden=true;
+        (document.body||document.documentElement).appendChild(el);
+      }
+      el.textContent=window.__EVACROUTE_ERRORS__.join('\n');
+    }catch(e){}
+  }
+  window.addEventListener('error',function(e){
+    record(e&&e.message?e.message:'script error'+(e&&e.filename?' @'+e.filename+':'+e.lineno:''));
+  });
+  window.addEventListener('unhandledrejection',function(e){
+    record('unhandled rejection: '+((e&&e.reason&&e.reason.message)||e&&e.reason||'unknown'));
+  });
+})();
+</script>
+<!-- ============================ DOM ============================ -->
+<div id="map"></div>
+
+<div id="uiLayer">
+  <div id="topWrap">
+    <section id="topPanel" class="card" aria-label="Evacuation status">
+      <div class="row row-between">
+        <div class="brand"><span class="shield" aria-hidden="true">🛡️</span><span>EVACROUTE</span></div>
+        <span id="statusBadge" class="badge">LOCATING</span>
+      </div>
+      <div id="statusLine">Detecting your location…</div>
+      <div id="routeSummary">Waiting for your location…</div>
+      <div class="dirRow">
+        <div id="dirArrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2 4.4 21.4l7.6-4.1 7.6 4.1L12 2.2Zm0 3.9 4.4 11.1L12 15l-4.4 2.2L12 6.1Z"/></svg>
+        </div>
+        <div class="dirMeta">
+          <span class="stat-label">Evacuation direction</span>
+          <span id="dirText" class="stat-value">—</span>
+          <span id="dirDeg" class="stat-sub"></span>
+        </div>
+      </div>
+      <div id="coordsLine">No position yet</div>
+    </section>
+
+    <section id="adminPanel" class="card" hidden aria-label="Admin tools">
+      <div class="admin-head">
+        <span class="admin-title">ADMIN TOOLS</span>
+        <span class="spacer"></span>
+        <button id="btnHideAdmin" class="btn btn-ghost" type="button">User view</button>
+      </div>
+      <div id="zoneCounts" class="counts">0 danger zones, 0 safe zones active</div>
+      <div id="adminList" class="admin-list" aria-label="Configured zones"></div>
+      <div class="tool-row">
+        <button id="btnDrawDanger" class="btn btn-danger" type="button">＋ Draw danger zone</button>
+        <button id="btnPlaceSafe" class="btn btn-safe" type="button">＋ Place safe zone</button>
+      </div>
+      <input id="safeLabel" class="text-input" type="text" autocomplete="off"
+             placeholder="Safe zone label (optional — e.g. Safe Zone C)" aria-label="Safe zone label" />
+      <div id="drawState" class="hint">Tap the map to start drawing a danger zone.</div>
+      <div id="drawActions" class="tool-row" hidden>
+        <button id="btnFinishPoly" class="btn btn-primary" type="button">✓ Finish polygon</button>
+        <button id="btnUndoVertex" class="btn btn-ghost" type="button">↶ Undo point</button>
+        <button id="btnCancelDraw" class="btn btn-ghost" type="button">✕ Cancel</button>
+      </div>
+      <div class="tool-row">
+        <button id="btnExport" class="btn" type="button">⬇ Export zones (JSON)</button>
+        <button id="btnImport" class="btn" type="button">⬆ Import JSON</button>
+      </div>
+      <div class="tool-row">
+        <button id="btnFitZones" class="btn" type="button">🎯 Fit all zones</button>
+        <button id="btnClearAll" class="btn btn-ghost" type="button">🗑 Clear all zones</button>
+      </div>
+      <input id="importFile" class="sr-only" type="file" tabindex="-1"
+             accept=".json,.geojson,application/json,application/geo+json"
+             aria-label="Import zones from a JSON or GeoJSON file" />
+    </section>
+  </div>
+
+  <div id="toastHost" aria-live="polite"></div>
+
+  <div id="bottomPanel" role="toolbar" aria-label="Primary actions">
+    <button id="btnLocate" class="btn btn-solid" type="button">📍 Locate me again</button>
+    <button id="btnAdmin" class="btn btn-solid" type="button">🛠 Admin panel</button>
+    <a id="btnMaps" class="btn btn-primary" href="#" target="_blank" rel="noopener noreferrer" hidden>🧭 Open route in Google Maps</a>
+  </div>
+</div>
+
+<div id="geoModal" role="dialog" aria-modal="true" aria-labelledby="geoModalTitle">
+  <div class="card">
+    <div class="modal-title" id="geoModalTitle">Location needed</div>
+    <div class="modal-msg" id="geoModalMsg">We could not read your GPS position.</div>
+    <div class="field-row">
+      <div class="field">
+        <label for="manualLat">Latitude</label>
+        <input id="manualLat" class="text-input" type="number" step="any" inputmode="decimal" placeholder="28.6139" />
+      </div>
+      <div class="field">
+        <label for="manualLng">Longitude</label>
+        <input id="manualLng" class="text-input" type="number" step="any" inputmode="decimal" placeholder="77.2090" />
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button id="btnUseManual" class="btn btn-primary" type="button">Use these coordinates</button>
+      <button id="btnUseDemo" class="btn" type="button">Use demo location</button>
+      <button id="btnRetryGeo" class="btn btn-ghost" type="button">Try GPS again</button>
+    </div>
+    <p class="modal-note" id="geoModalNote">Tip: browsers only share GPS on <b>https://</b> or <b>localhost</b>. Opening this file directly as <code>file://</code> blocks location — serve it with <code>python -m http.server</code> instead.</p>
+  </div>
+</div>
+
+<div id="boot">
+  <div class="boot-inner">
+    <div class="boot-shield" aria-hidden="true">🛡️</div>
+    <div class="boot-title">EVACROUTE</div>
+    <div class="boot-sub">Evacuation guidance</div>
+    <div class="spinner" aria-hidden="true"></div>
+    <div id="bootMsg">Detecting your location…</div>
+    <div id="bootSub2">Please allow location access</div>
+  </div>
+</div>
+
+<!-- Leaflet 1.9.4 (JS) -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- EVACROUTE modules (plain ES5, no build step; loaded in dependency order) -->
+<script src="{% static 'core/js/util.js' %}"></script>
+<script src="{% static 'core/js/icons.js' %}"></script>
+<script src="{% static 'core/js/geometry.js' %}"></script>
+<script src="{% static 'core/js/config.js' %}"></script>
+<script src="{% static 'core/js/ui.js' %}"></script>
+<script src="{% static 'core/js/storage.js' %}"></script>
+<script src="{% static 'core/js/zones.js' %}"></script>
+<script src="{% static 'core/js/map.js' %}"></script>
+<script src="{% static 'core/js/admin.js' %}"></script>
+<script src="{% static 'core/js/user.js' %}"></script>
+<script src="{% static 'core/js/selftest.js' %}"></script>
+<script src="{% static 'core/js/app.js' %}"></script>
+</body>
+</html>

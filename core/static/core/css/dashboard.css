@@ -1,0 +1,344 @@
+/* ==========================================================================
+   EVACROUTE — React dashboard styling
+   Loaded on top of css/styles.css, so the design tokens (--bg, --card,
+   --danger, --safe, --accent ...) and the .card / .btn / .badge /
+   .text-input classes are shared with the main map app.
+   ========================================================================== */
+
+body.dashboard {
+  overflow-y: auto;
+  overscroll-behavior: auto;
+  background:
+    radial-gradient(1100px 600px at 15% -10%, rgba(47, 129, 247, 0.16), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(34, 197, 94, 0.10), transparent 55%),
+    var(--bg);
+}
+
+.dash-shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 22px 16px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ------------------------------- header -------------------------------- */
+.dash-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dash-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  font-size: 18px;
+}
+
+.dash-brand .shield {
+  font-size: 22px;
+  filter: drop-shadow(0 0 12px rgba(47, 129, 247, 0.6));
+}
+
+.dash-title {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.dash-title small {
+  letter-spacing: 0.02em;
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dash-spacer {
+  flex: 1 1 auto;
+}
+
+.dash-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* -------------------------------- stats -------------------------------- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.stat-card {
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--card-b);
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
+}
+
+.stat-card .k {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stat-card .v {
+  font-size: 28px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-card.danger .v { color: var(--danger); }
+.stat-card.safe .v { color: var(--safe); }
+.stat-card.accent .v { color: var(--accent); }
+
+/* -------------------------------- tabs --------------------------------- */
+.tab-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  border: 1px solid var(--card-b);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--txt);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tab[aria-selected="true"] {
+  border-color: var(--accent);
+  background: rgba(47, 129, 247, 0.18);
+  font-weight: 600;
+}
+
+/* -------------------------------- panels ------------------------------- */
+.panel {
+  padding: 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--card-b);
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.panel-note {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+/* -------------------------------- forms -------------------------------- */
+.form-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.field-label.wide {
+  grid-column: 1 / -1;
+}
+
+textarea.text-input {
+  min-height: 74px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+select.text-input {
+  appearance: none;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* -------------------------------- tables ------------------------------- */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--card-b);
+  border-radius: 12px;
+}
+
+table.dash-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+table.dash-table th,
+table.dash-table td {
+  text-align: left;
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  white-space: nowrap;
+}
+
+table.dash-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+table.dash-table td.msg {
+  white-space: normal;
+  min-width: 200px;
+  color: #d6e2f0;
+}
+
+table.dash-table tr:last-child td {
+  border-bottom: none;
+}
+
+table.dash-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.empty {
+  padding: 22px 12px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pill {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+}
+
+.pill.danger { color: var(--danger); }
+.pill.safe { color: var(--safe); }
+.pill.info { color: var(--muted); }
+.pill.submission { color: var(--accent); }
+
+.icon-btn {
+  border: 1px solid var(--card-b);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+
+.icon-btn:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ------------------------------ geojson box ---------------------------- */
+.code-box {
+  width: 100%;
+  min-height: 132px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  background: rgba(0, 0, 0, 0.35);
+  color: #cfe2ff;
+  border: 1px solid var(--card-b);
+  border-radius: 12px;
+  padding: 10px;
+  resize: vertical;
+}
+
+/* -------------------------------- toasts ------------------------------- */
+.dash-toasts {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(360px, 90vw);
+}
+
+.dash-toast {
+  border: 1px solid var(--card-b);
+  border-left: 3px solid var(--accent);
+  background: rgba(13, 18, 26, 0.95);
+  color: var(--txt);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  box-shadow: var(--shadow);
+}
+
+.dash-toast.ok { border-left-color: var(--safe); }
+.dash-toast.warn { border-left-color: #f5a524; }
+.dash-toast.err { border-left-color: var(--danger); }
+
+.footnote {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.footnote code {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+
+@media (max-width: 560px) {
+  .dash-shell { padding: 16px 10px 50px; }
+  .stat-card .v { font-size: 24px; }
+}
+

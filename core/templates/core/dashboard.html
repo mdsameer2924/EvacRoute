@@ -1,0 +1,99 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5" />
+<meta name="theme-color" content="#0b0f14" />
+<meta name="description" content="EVACROUTE dashboard — zones and activity stored in SQLite through Django, rendered with React." />
+<title>EVACROUTE — Dashboard (Django + React)</title>
+
+<!-- shared design tokens + components from the main app -->
+<link rel="stylesheet" href="{% static 'core/css/styles.css' %}" />
+<link rel="stylesheet" href="{% static 'core/css/dashboard.css' %}" />
+
+<!-- early error capture (same convention as the map app) -->
+<script>
+window.__EVACROUTE_ERRORS__=[];
+(function(){
+  function record(msg){
+    try{
+      window.__EVACROUTE_ERRORS__.push(String(msg));
+      var el=document.getElementById('js-error');
+      if(!el){
+        el=document.createElement('pre');
+        el.id='js-error';
+        el.hidden=true;
+        (document.body||document.documentElement).appendChild(el);
+      }
+      el.textContent=window.__EVACROUTE_ERRORS__.join('\n');
+    }catch(e){}
+  }
+  window.addEventListener('error',function(e){
+    record(e&&e.message?e.message:'script error'+(e&&e.filename?' @'+e.filename+':'+e.lineno:''));
+  });
+  window.addEventListener('unhandledrejection',function(e){
+    record('unhandled rejection: '+((e&&e.reason&&e.reason.message)||e&&e.reason||'unknown'));
+  });
+})();
+</script>
+</head>
+<body class="dashboard">
+
+<!-- React mounts here; the data-* attributes seed the counters server-side. -->
+<div id="dash-root" data-zone-count="{{ zone_count }}" data-log-count="{{ log_count }}"></div>
+
+<div id="react-fallback" class="empty" hidden></div>
+
+<noscript>
+  <div class="empty">This dashboard needs JavaScript. The REST API and the Django admin still work without it.</div>
+</noscript>
+
+<!-- React 18 + Babel standalone (JSX compiled in the browser, no build step) -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js" crossorigin></script>
+
+<script type="text/babel" data-presets="react" src="{% static 'core/react/dashboard.jsx' %}"></script>
+
+<script>
+/* Friendly message when the CDN is unreachable or the JSX fails to run.
+   The check is evidence-based rather than time-based: a missing React bundle or
+   a captured JavaScript error (recorded by the block in <head>) is reported;
+   a slow CDN simply keeps waiting without alarming the user. */
+(function(){
+  function fail(msg){
+    var el=document.getElementById('react-fallback');
+    if(el){ el.hidden=false; el.textContent=msg; }
+    var err=document.getElementById('js-error');
+    if(err&&err.textContent){ err.hidden=false; }
+  }
+  window.addEventListener('load',function(){
+    if(typeof window.React==='undefined'||typeof window.ReactDOM==='undefined'){
+      fail('The React bundle could not be loaded from unpkg.com — check the internet connection and reload. The REST API, SQLite database and Django admin all still work.');
+      return;
+    }
+    var tries=0;
+    var timer=window.setInterval(function(){
+      var root=document.getElementById('dash-root');
+      if(root&&root.children.length){          /* mounted — stop watching */
+        window.clearInterval(timer);
+        window.__EVACROUTE_DASHBOARD_MOUNTED__=true;
+        return;
+      }
+      var errors=window.__EVACROUTE_ERRORS__||[];
+      if(errors.length){                       /* Babel/JSX error was captured */
+        window.clearInterval(timer);
+        fail('The dashboard hit a JavaScript error — details are shown below.');
+        return;
+      }
+      tries+=1;
+      if(tries>=40){                           /* ~12s: give the CDN more time, quietly */
+        window.clearInterval(timer);
+        window.__EVACROUTE_DASHBOARD_SLOW__=true;
+      }
+    },300);
+  });
+})();
+</script>
+</body>
+</html>
